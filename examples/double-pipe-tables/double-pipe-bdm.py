@@ -2,10 +2,20 @@
 from firedrake import *
 from deflatedbarrier import *
 
-delta = 1.5 # aspect ratio
+"""
+A deflated barrier method implementation applied to the double-pipe problem
+discretized with a divergence-free DG FEM. Here we use a piecewise constant
+discretization for the material distribution and a Brezzi-Douglas-Marini
+discretization for the velocity-pressure pair.
+"""
+
+# Mesh properties
+width = 1.5 # aspect ratio
 N = 20 # mesh resolution
 nref = 6
 base_ref = 1
+
+# Augmented Lagrangian parameter
 gamma_al = 1e4
 
 def before(dm, i):
@@ -25,11 +35,11 @@ def InflowOutflow(mesh):
     l = 1.0/6.0
     gbar = 1.0
 
-    x_on_boundary = Or(lt(x[0], 1e-10), gt(x[0], delta-1e-10))
-    
-    y_in_first_pipe = And(gt(x[1], 1/4 - l/2), lt(x[1], 1/4 + l/2)) 
+    x_on_boundary = Or(lt(x[0], 1e-10), gt(x[0], width-1e-10))
+
+    y_in_first_pipe = And(gt(x[1], 1/4 - l/2), lt(x[1], 1/4 + l/2))
     val_in_first_pipe = exp(gbar - gbar/(1.-(12*x[1] - 3.)**2))
-    
+
     y_in_second_pipe = And(gt(x[1], 3/4 - l/2), lt(x[1], 3/4 + l/2))
     val_in_second_pipe = exp(gbar - gbar/(1.-(12*x[1] - 9.)**2))
 
@@ -49,7 +59,7 @@ class Mass(AuxiliaryOperatorPC):
 class BorrvallProblem(PrimalInteriorPoint):
     def mesh(self, comm):
         distribution_parameters = {"partition": True, "overlap_type": (DistributedMeshOverlapType.VERTEX, 2)}
-        mesh = RectangleMesh(N, N, delta, 1.0, distribution_parameters = distribution_parameters, comm=COMM_WORLD)
+        mesh = RectangleMesh(N, N, width, 1.0, distribution_parameters = distribution_parameters, comm=COMM_WORLD)
         self.mh = MeshHierarchy(mesh, nref, reorder=True, callbacks=(before,after))
         mesh = self.mh[base_ref]
         return mesh
@@ -60,7 +70,7 @@ class BorrvallProblem(PrimalInteriorPoint):
         Ce = FiniteElement("DG", mesh.ufl_cell(), 0) # material distribution
         Re = FiniteElement("R",  mesh.ufl_cell(), 0) # reals
         Ze = MixedElement([Ce, Ve, Pe, Re])
-        
+
         self.Ze = Ze
         Z  = FunctionSpace(mesh, Ze)
         info_blue("Number of degrees of freedom: ", Z.dim())
@@ -275,7 +285,7 @@ class BorrvallProblem(PrimalInteriorPoint):
                         # This approximation can be approximated by another Schur complement
                         # factorization since it looks like Stokes! The top left block is
                         # the momentum block
-                        "fieldsplit_1":{              
+                        "fieldsplit_1":{
                             "ksp_type": "preonly",
                             #"ksp_norm_type": "unpreconditioned",
                             #"ksp_converged_reason": None,

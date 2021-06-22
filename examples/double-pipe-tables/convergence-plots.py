@@ -6,12 +6,18 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import rc
-#rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-#rc('text', usetex=True)
 rc('font',**{'family':'serif','serif':['Computer Modern']})
 rc('text', usetex=True)
 import numpy as np
 import os
+
+
+"""
+Script to generate the convergence plots
+
+"""
+
+# Code that helps generate the correct mesh hierarchy
 comm = COMM_WORLD
 
 def before(dm, i):
@@ -22,29 +28,38 @@ def after(dm, i):
     for p in range(*dm.getHeightStratum(1)):
         dm.setLabelValue("prolongation", p, i+2)
 
-
-def broken_h1_norm(u_f, u_c, zc):    
+# Define the broken H^1 norm
+def broken_h1_norm(u_f, u_c, zc):
     n_fun = FacetNormal(zc.ufl_domain())
     h_fun = CellDiameter(zc.ufl_domain())
     uc = zc.split()[1]
-
+    # This is the normal H1 norm
     Ff = inner(u_f - u_c, u_f - u_c)*dx + inner(grad(u_f - u_c), grad(u_f - u_c))*dx
+
+    # Here we account for the jumps in the discretized FEM solution. We do not
+    # take into account the jumps in the fine solution since the analytical solution
+    # would have no jumps.
     Fc = 1./avg(h_fun) * inner(2*avg(outer(uc,n_fun)), 2*avg(outer(uc,n_fun))) * dS
 
+    # Add the different components and square root.
     F = assemble(Ff) + assemble(Fc)
     return sqrt(F)
 
+# Define base mesh
 N = 20
 delta = 1.5
 mesh = RectangleMesh(N,N,delta,1.0,comm=comm)
 distribution_parameters = {"partition": True, "overlap_type": (DistributedMeshOverlapType.VERTEX, 2)}
 mesh = RectangleMesh(N, N, delta, 1.0, distribution_parameters = distribution_parameters, comm=COMM_WORLD)
 
+# BDM mixed FEM spaces
 Ve = FiniteElement("BDM", mesh.ufl_cell(), 1, variant = "integral") # velocity
 Pe = FiniteElement("DG", mesh.ufl_cell(), 0) # pressure
 Ce = FiniteElement("DG", mesh.ufl_cell(), 0) # material distribution
 Re = FiniteElement("R",  mesh.ufl_cell(), 0) # reals
 Ze = MixedElement([Ce, Ve, Pe, Re])
+
+# Generate mesh hierarchy
 hierarchy = MeshHierarchy(mesh, 6)
 
 mesh0 = hierarchy[-1]
@@ -59,6 +74,8 @@ z_prolong = Function(Z_fine_0)
 dofs_fine = Z_fine_0.dim()
 
 
+# Load the finest-level solution. If it has been saved somewhere other than output/
+# make sure to change the parent_folder address.
 parent_folder = "output/"
 h5 = HDF5File(parent_folder + "BDM-N-20-nref-6-output/mu-0.000000000000e+00-dofs-16389121-params-[0.3333333333333333, 25000.0, 0.1]-solver-BensonMunson/0.xml.gz", "r", comm=comm)
 h5.read(z_fine_0, "/guess")
@@ -68,42 +85,51 @@ h5.read(z_fine_1, "/guess")
 del h5
 (rho_0, u_0, p_0, _) = z_fine_0.split()
 (rho_1, u_1, p_1, _) = z_fine_1.split()
+
+# Different solutions will have fixed the integral of the pressure at different places.
+# Here we reset the pressure to have an integral of zero.
 p_0.vector().set_local(p_0.vector().get_local()-assemble(p_0*dx)/1.5)
 p_1.vector().set_local(p_1.vector().get_local()-assemble(p_1*dx)/1.5)
 
 
+# Initialize lists for the errors
 list_rho = [[],[]]
 list_u = [[],[]]
 list_u_l2 = [[],[]]
 list_p = [[],[]]
 h = []
 
-
+# Run for loop
 for levels in [1,2,3,4,5]:
     mesh = hierarchy[levels]
     Z  = FunctionSpace(mesh, Ze)
     z = Function(Z)
 
+    # Hand calculation for the mesh size
     dofs = Z.dim()
     hmin = sqrt((1.5/(N*2**levels))**2 + (1.0/(N*2**levels))**2)
     h.append(hmin)
 
+    # Run over both solutions of the double-pipe
     for branch in range(0,2):
-        
+
+        # Load coarse-level solutions
         h5 = HDF5File(parent_folder + "BDM-N-%s-nref-%s-output/mu-0.000000000000e+00-dofs-%s-params-[0.3333333333333333, 25000.0, 0.1]-solver-BensonMunson/%s.xml.gz"%(N, levels, dofs, branch), "r", comm=comm)
         h5.read(z, "/guess")
         del h5
-        
+
+        # Prolong to fine level
         prolong(z, z_prolong)
 
         (rho, u, p, _) = z_prolong.split()
+        # Fix integral of pressure
         p.vector().set_local(p.vector().get_local()-assemble(p*dx)/1.5)
         if branch == 0:
             rho_ = rho_0; u_ = u_0; p_ = p_0
         else:
             rho_ = rho_1; u_ = u_1; p_ = p_1
-        
-        # Compute norm
+
+        # Compute errors
         list_rho[branch].append(errornorm(rho_, rho, norm_type='L2'))
         list_u[branch].append(broken_h1_norm(u_,u, z))
         list_u_l2[branch].append(errornorm(u_,u, norm_type='L2'))
@@ -135,7 +161,8 @@ try:
 except:
     pass
 
-#h1 = [0.180, 0.090, 0.045, 0.023, 0.011]
+
+# Plot all the convergence plots!
 
 plt.loglog(h,u_0, marker = 'x', label = r"Straight channels")
 plt.loglog(h,u_1, marker = 'o', label = r"Double-ended wrench")

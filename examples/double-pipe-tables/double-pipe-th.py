@@ -2,7 +2,16 @@
 from firedrake import *
 from deflatedbarrier import *
 
-delta = 1.5 # aspect ratio
+
+"""
+A deflated barrier method implementation applied to the double-pipe problem
+discretized with a conforming FEM. Here we use a piecewise constant discretization
+for the material distribution and a Taylor-Hood discretization for the
+velocity-pressure pair.
+"""
+
+# Mesh properties
+width = 1.5 # aspect ratio
 N = 20 # mesh resolution
 nref = 6
 base_ref = 1
@@ -24,11 +33,11 @@ def InflowOutflow(mesh):
     l = 1.0/6.0
     gbar = 1.0
 
-    x_on_boundary = Or(lt(x[0], 1e-10), gt(x[0], delta-1e-10))
-    
-    y_in_first_pipe = And(gt(x[1], 1/4 - l/2), lt(x[1], 1/4 + l/2)) 
+    x_on_boundary = Or(lt(x[0], 1e-10), gt(x[0], width-1e-10))
+
+    y_in_first_pipe = And(gt(x[1], 1/4 - l/2), lt(x[1], 1/4 + l/2))
     val_in_first_pipe = exp(gbar - gbar/(1.-(12*x[1] - 3.)**2))
-    
+
     y_in_second_pipe = And(gt(x[1], 3/4 - l/2), lt(x[1], 3/4 + l/2))
     val_in_second_pipe = exp(gbar - gbar/(1.-(12*x[1] - 9.)**2))
 
@@ -42,13 +51,16 @@ def InflowOutflow(mesh):
 
 class BorrvallProblem(PrimalInteriorPoint):
     def mesh(self, comm):
+        # Generate mesh hierarchy
         distribution_parameters = {"partition": True, "overlap_type": (DistributedMeshOverlapType.VERTEX, 2)}
-        mesh = RectangleMesh(N, N, delta, 1.0, distribution_parameters = distribution_parameters, comm=COMM_WORLD)
+        mesh = RectangleMesh(N, N, width, 1.0, distribution_parameters = distribution_parameters, comm=COMM_WORLD)
         self.mh = MeshHierarchy(mesh, nref, reorder=True, callbacks=(before,after))
         mesh = self.mh[base_ref]
         return mesh
 
     def function_space(self, mesh):
+
+        # Taylor-Hood discretization
         Ve = VectorElement("CG", mesh.ufl_cell(), 2, dim=2) # velocity
         Pe = FiniteElement("CG", mesh.ufl_cell(), 1) # pressure
         Ce = FiniteElement("DG", mesh.ufl_cell(), 0) # material distribution
@@ -71,7 +83,8 @@ class BorrvallProblem(PrimalInteriorPoint):
     def lagrangian(self, z, params):
         (rho, u, p, lmbda) = split(z)
         (gamma, alphabar, q) = params
-
+        
+        # Barrier functional
         L = (
             + 0.5 * inner(grad(u), grad(u))*dx
             - inner(p, div(u))*dx
