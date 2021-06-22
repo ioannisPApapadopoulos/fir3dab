@@ -13,7 +13,7 @@ The objective is to compute multiple minima of topology optimization problems wh
 
 The code is written in Python using Firedrake: a finite element solver platform. Firedrake is well documented here: firedrakeproject.org. 
 
-At this time this library depends on changes to Firedrake and Firedrake's branch of PETSc that have not yet been merged to master. These changes are mainly related to the current implementation of vinewtonrsls (Benson and Munson's reduced-space active-set strategy) in PETSc which is not compatable with matrix-free operations (and often fails even if using aij matrices). These reframe vinewtonrsls as zeroing rows and columns associated with the active set. On the Firedrake side, these are interpreted as DirichletBCs. This allows us to more easily compose complicated solver (including geometric multigrid) with matrices that have an active set. 
+At this time this library depends on changes to Firedrake and Firedrake's branch of PETSc that have not yet been merged to master. These changes are mainly related to the current implementation of vinewtonrsls (Benson and Munson's reduced-space active-set strategy) in PETSc which is not compatable with matrix-free operations (and often fails even if using aij matrices). These reframe vinewtonrsls as zeroing rows and columns associated with the active set. On the Firedrake side, these are interpreted as DirichletBCs. This changes allows us to compose complicated solvers (including geometric multigrid) with matrices that have an active set. 
 
 In order to install this library and the version of Firedrake required for this library, use the following commands:
 
@@ -29,11 +29,11 @@ In order to install this library and the version of Firedrake required for this 
     make
     cd ../../../../
 
-To activate the Firedrake venv
+To activate the Firedrake venv use:
 
     source firedrake/install.sh
 
-Then to finally install the fir3dab library
+To install the fir3dab library:
     
     cd fir3dab/
     pip3 install .
