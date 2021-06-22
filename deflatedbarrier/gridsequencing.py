@@ -2,7 +2,6 @@
 from firedrake import *
 from firedrake.petsc import PETSc
 from .deflation import defsolve
-from .compatibility import make_comm
 from .drivers import deflatedbarrier
 from .mlogging import *
 import os
