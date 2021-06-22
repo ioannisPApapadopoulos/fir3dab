@@ -1,0 +1,314 @@
+diff --git a/firedrake/matrix_free/operators.py b/firedrake/matrix_free/operators.py
+index 849f72fc..8c283b7b 100644
+--- a/firedrake/matrix_free/operators.py
++++ b/firedrake/matrix_free/operators.py
+@@ -57,6 +57,112 @@ def find_sub_block(iset, ises):
+     return found
+ 
+ 
++def find_element_of_which_sub_block(rows, ises):
++    """Determine which subset of ises that the items in rows comes from
++
++    :arg rows: A list or numpy array of row indices
++    :arg ises: An iterable of PETSc ISes.
++
++    :returns block: A dictionary the length of ises which contains
++                lists representing the subets of ises. The lists
++                hold the indices in `rows' that belong to that subset
++    :returns shift: A list containing the number that the rows needs to
++                be shifted by such that the first row of the subset
++                begins at 0
++
++    :raises LookupError: if ``rows`` could not be found in
++        ``ises``.
++    """
++    # This function acts as lookup to find which block the indices belong in
++    #import ipdb; ipdb.set_trace()
++    block = {}
++    shift = []
++    found = 0
++    candidates = OrderedDict(enumerate(ises))
++    comm = ises[0].comm.tompi4py()
++
++    #for i, candidate in list(candidates.items()):
++        # Initialise dictionary to hold the rows and the shift parameter
++        # since DirichletBC starts from zero for each block
++    #    block[i] = []
++        #shift.append(candidate.indices[0])
++    #for row in rows:
++    for i, candidate in list(candidates.items()):
++        block[i] = []
++        candidate_indices = candidate.indices
++        block_row = set(list(rows)).intersection(candidate.indices)
++        #lmatch = numpy.isin(row, candidate_indices)
++        # We found the block in which the index lives, so we store it
++        #if lmatch:
++        block[i].extend(block_row)
++            #block[i].append(row)
++            #found += 1
++            #break
++    #if len(found) < len(rows):
++    #import ipdb; ipdb.set_trace()
++    #if comm.allreduce(len(rows)-len(found), op=MPI.SUM) > 0:
++        # We did not manage to find the row in the possible index sets
++    #    raise LookupError("Unable to find %s in %s" % (rows, ises))
++    return (block, shift)
++
++
++def vector_function_space_rows(rows, V):
++    """This parses the rows supplied to matZeroRowsColumns into the
++    corresponding nodes of the subspaces of a VectorFunctionSpace.
++    If the VectorFunctionSpace is dimension 2, then zeroing row
++    [0,1,2,3,4,5] corresponds to zeroing the 0,1,2 dofs of the
++    first FunctionSpace and equally the 0,1,2 dofs of the second
++    FunctionSpace. Therefore the output would be [[0,1,2],[0,1,2]]
++    """
++    step = V.shape[0]
++    vec_rows = []
++    belong_to_sub = rows % step
++
++    for i in range(step):
++        rows_i = numpy.extract(belong_to_sub == i, rows)
++        rows_i = rows_i - i
++        rows_i = rows_i/step
++        vec_rows.append(rows_i)
++    return vec_rows
++
++
++class ZeroRowsColumnsBC(DirichletBC):
++    """
++    This overloads the DirichletBC class in order to impose Dirichlet boundary
++    conditions on user-defined vertices
++    """
++    def __init__(self, V, val, rows=None, sub_domain="on_boundary", method="topological"):
++        super().__init__(V, val, [], method)
++        if rows is not None:
++            self.nodes = numpy.array(rows)
++    # This reconstruct method is the same as the one in DirichletBC, expcept that the
++    # return call includes a reference to the rows argument
++    def reconstruct(self, field=None, V=None, g=None, sub_domain=None, method=None, use_split=False):
++        fs = self.function_space()
++        if V is None:
++            V = fs
++        if g is None:
++            g = self._original_arg
++        if sub_domain is None:
++            sub_domain = self.sub_domain
++        if method is None:
++            method = self.method
++        if field is not None:
++            assert V is not None, "`V` can not be `None` when `field` is not `None`"
++            V = self.as_subspace(field, V, use_split)
++            if V is None:
++                return
++        if V == fs and \
++           V.parent == fs.parent and \
++           V.index == fs.index and \
++           (V.parent is None or V.parent.parent == fs.parent.parent) and \
++           (V.parent is None or V.parent.index == fs.parent.index) and \
++           g == self._original_arg and \
++           sub_domain == self.sub_domain and method == self.method:
++            return self
++        return type(self)(V, g, rows=self.nodes, sub_domain="on_boundary", method=method)
++
++
+ class ImplicitMatrixContext(object):
+     # By default, these matrices will represent diagonal blocks (the
+     # (0,0) block of a 1x1 block matrix is on the diagonal).
+@@ -105,7 +211,7 @@ class ImplicitMatrixContext(object):
+         from firedrake import function
+         self._y = function.Function(test_space)
+         self._x = function.Function(trial_space)
+-
++        
+         # These are temporary storage for holding the BC
+         # values during matvec application.  _xbc is for
+         # the action and ._ybc is for transpose.
+@@ -382,12 +488,14 @@ class ImplicitMatrixContext(object):
+     def duplicate(self, mat, copy):
+ 
+         if copy == 0:
+-            raise NotImplementedError("We do now know how to duplicate a matrix-free MAT when copy=0")
++            raise NotImplementedError("We do not know how to duplicate a matrix-free MAT when copy=0")
+         newmat_ctx = ImplicitMatrixContext(self.a,
+                                            row_bcs=self.bcs,
+                                            col_bcs=self.bcs_col,
+                                            fc_params=self.fc_params,
+                                            appctx=self.appctx)
++        if hasattr(self, 'tmp_zeroRowsColumns'):
++            newmat_ctx.tmp_zeroRowsColumns = self.tmp_zeroRowsColumns
+         newmat = PETSc.Mat().create(comm=mat.comm)
+         newmat.setType("python")
+         newmat.setSizes((newmat_ctx.row_sizes, newmat_ctx.col_sizes),
+@@ -395,3 +503,114 @@ class ImplicitMatrixContext(object):
+         newmat.setPythonContext(newmat_ctx)
+         newmat.setUp()
+         return newmat
++
++    def zeroRowsColumns(self, mat, active_rows, diag=1.0, x=None, b=None):
++        """
++        The way we zero rows and columns of unassembled matrices is by
++        constructing a DirichetBC corresponding to the rows and columns.
++        By nature of how bcs are implemented, DirichletBC is equivalent to
++        zeroing the rows and columns and adding a 1 to the diagonal
++        """
++        print("Inside zeroRowsColumns")
++        if not numpy.allclose(diag, 1.0):
++            # DirichletBC adds a 1 onto the diagonal, this is part of the implementation and is not easy to change
++            raise NotImplementedError("We do not know how to implement matrix-free zeroRowsColumns with diag not equal to 1")
++        comm  = self._y.function_space().dof_dset.field_ises[0].comm.tompi4py()
++        ises = self._y.function_space().dof_dset.local_ises
++ 
++        lgmap = self._y.function_space().dof_dset.lgmap
++        brows = lgmap.applyInverse(active_rows)
++
++        # Unsure why but for parallel we need to gather global indices
++        active_rows = numpy.concatenate(comm.allgather(active_rows))
++        # active_rows is global indices, need to do a global to local mapping for DirichletBC
++        active_rows = lgmap.applyInverse(active_rows)
++ 
++        # Find the blocks which the rows are a part of and find the row shift
++        # since DirichletBC starts from 0 for each block
++        
++        if len(ises) > 1:
++            # This is slow, ideally we do not do it, but how else to know which field is where?
++            (block, shift) = find_element_of_which_sub_block(active_rows, ises)
++        else:
++            block = {0: list(active_rows)}
++            shift = [0]
++       
++        # Include current DirichletBC conditions
++        bcs = []
++        bcs_col = []
++        zerorows_bcs = []
++        Vrow = self._y.function_space()
++        [bcs.append(bc) for bc in self.bcs]
++        [bcs_col.append(bc) for bc in self.bcs_col]
++        # If the optional vector of solutions for the zeroed rows is given then
++        # need to pass to DirichletBC, otherwise set to zero
++        if not hasattr(self, 'tmp_zeroRowsColumns'):
++            # Temporary storage for holding the BC values during zeroRowsColumns
++            from firedrake import function
++            self.tmp_zeroRowsColumns = function.Function(Vrow)
++
++        if x.array_r.size == 0 or x is None:
++            self.tmp_zeroRowsColumns.vector().set_local(0)
++        else:
++            self.tmp_zeroRowsColumns.vector().set_local(x)
++
++        for i in range(len(block)):
++            # For each block create a new DirichletBC corresponding to the
++            # rows and columns to be zeroed
++            if block[i]:
++                rows = numpy.array(block[i])
++                if i == 0:
++                    shift = 0
++                else:
++                    shift = Vrow.sub(i-1).dim()
++                rows = rows - shift
++                #print(rows)
++                # Without this if statement, a VectorFunctionSpace would be split
++                # whilst tmp_sub would be applying over the whole VectorFunctionSpace
++                # throwing an error
++                if len(block) == 1:
++                    V = Vrow
++                    tmp_sub = self.tmp_zeroRowsColumns
++                else:
++                    V = Vrow.sub(i)
++                    tmp_sub = self.tmp_zeroRowsColumns.split()[i]
++                if len(V.shape) == 0:
++                    # If FunctionSpace then apply DirichletBC as expected
++                    activebcs_row = ZeroRowsColumnsBC(V, tmp_sub, rows=rows)
++                    zerorows_bcs.append(activebcs_row)
++                else:
++                    # If VectorFunctionSpace, then we need to parse the rows supplied to
++                    # zeroRowsColumns to give the supply the correct nodes to be zeroed
++                    # for each individual subspace of the VectorFunctionSpace
++                    vec_rows = vector_function_space_rows(rows, V)
++                    for sub_iter in range(V.shape[0]):
++                        activebcs_row = ZeroRowsColumnsBC(V.sub(sub_iter), tmp_sub.sub(sub_iter), rows=vec_rows[sub_iter])
++                        zerorows_bcs.append(activebcs_row)
++
++        # Update bcs list
++        bcs.extend(zerorows_bcs)
++        bcs_col.extend(zerorows_bcs)
++        self.bcs = tuple(bcs)
++        self.bcs_col = tuple(bcs_col)
++        # Set new context, so PETSc mat is aware of new bcs
++        newmat_ctx = ImplicitMatrixContext(self.a,
++                                           row_bcs=self.bcs,
++                                           col_bcs=self.bcs_col,
++                                           fc_params=self.fc_params,
++                                           appctx=self.appctx)
++        
++        newmat_ctx.tmp_zeroRowsColumns = self.tmp_zeroRowsColumns
++        mat.setPythonContext(newmat_ctx)
++        # Needed for MG purposes! This makes the DM SNES context aware of the new Dirichlet BCS
++        # which is where the bcs are extracted from when coarsening.
++        if self._x.function_space().dm.appctx:
++            self._x.function_space().dm.appctx[0]._problem.bcs = tuple(bcs)
++            self._x.function_space().dm.appctx[0].bcs_F = tuple(bcs)
++            self._x.function_space().dm.appctx[0].bcs_J = tuple(bcs)
++            self._x.function_space().dm.appctx[0].bcs_Jp = tuple(bcs)
++        # adjust active-set rows in residual
++        if (x and x.array_r.size > 0) and (b and b.array_r.size > 0) and active_rows.any():
++            b.array[brows] = x.array_r[brows]
++        elif b and b.array_r.size > 0 and active_rows.any():
++            b.array[brows] = 0
+diff --git a/tests/regression/test_matrix_free.py b/tests/regression/test_matrix_free.py
+index 07fcbb7b..b80215be 100644
+--- a/tests/regression/test_matrix_free.py
++++ b/tests/regression/test_matrix_free.py
+@@ -307,3 +307,52 @@ def test_duplicate(a, bcs):
+         B_petsc.mult(x, y)
+     # Check if original rhs is equal to BA^-1 (rhs)
+     assert np.allclose(rhs.vector().array(), solution2.vector().array())
++
++
++def test_matZeroRowsColumns(a, bcs):
++
++    # If bcs is None, nothing to test
++    if bcs is None:
++        return
++
++    test, trial = a.arguments()
++
++    if test.function_space().shape == ():
++        rhs_form = inner(Constant(1), test)*dx
++    elif test.function_space().shape == (2, ):
++        rhs_form = inner(Constant((1, 1)), test)*dx
++
++    # solve problem the official way
++    solution1 = Function(test.function_space())
++    solve(a == rhs_form, solution1, bcs=bcs)
++
++    # grab the positions of the zeroed rows imposed by the DirichletBC
++    # from the solution of the first solve
++    rows = np.extract(np.array(solution1.vector().get_local()) == 0, range(test.function_space().dim()))
++    # petsc4py complains about int type sometimes
++    rows = np.int32(rows)
++
++    # here we solve the same problem, but by assembling a matfree matrix and
++    # using matfree zeroRowsColumns to impose the homogeneous DirichletBC
++    Af = assemble(a, mat_type="matfree")
++    rhs = assemble(rhs_form)
++
++    b = Af.petscmat.createVecLeft()
++    b.array = rhs.vector().array()
++    bzero = Af.petscmat.createVecLeft()
++
++    # this is the method we are testing
++    Af.petscmat.zeroRowsColumns(rows, 1.0, bzero, b)
++
++    # setup KSP
++    ksp = PETSc.KSP().create()
++    ksp.setOperators(Af.petscmat)
++    ksp.setFromOptions()
++
++    solution2 = Function(test.function_space())
++    with solution2.dat.vec as x:
++        ksp.solve(b, x)
++
++    # check if solution found the official way, and the solution found via
++    # matZeroRowsColumns is the same
++    assert np.allclose(solution1.vector().array(), solution2.vector().array())

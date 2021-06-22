@@ -19,13 +19,13 @@ In order to install this library and the version of Firedrake required for this 
 
 	git clone https://papadopoulos@bitbucket.org/papadopoulos/fir3dab.git
     mkdir firedrake
-    cp fir3dab/install.sh firedrake/
+    cp fir3dab/firedrake-install/install.sh firedrake/
     cd firedrake
     ./install.sh install
     cd firedrake/src/firedrake
-    git apply ../../../../fir3dab/firedrake.diff
+    git apply ../../../../fir3dab/firedrake-install/firedrake.diff
     cd ../petsc
-    git apply ../../../../fir3dab/petsc.diff
+    git apply ../../../../fir3dab/firedrake-install/petsc.diff
     make
     cd ../../../../
 
@@ -41,8 +41,10 @@ Then to finally install the fir3dab library
 
 ### Examples ###
 
-Checkout out examples/double-pipe-tables 
+Checkout out examples/double-pipe-tables. To generate the convergence plots and tables found in "Numerical Analysis of a discontinuous Galerkin method for the Borrvall-Petersson topology optimization problem" - I.P.A. Papadopoulos, then run the following command in the parent directory:
 
+
+    make double-pipe-tables
 ### Contributors ###
 
 Ioannis P. A. Papadopoulos (ioannis.papadopoulos@maths.ox.ac.uk)
