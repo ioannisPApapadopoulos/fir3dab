@@ -2,7 +2,7 @@
 
 ### Synopsis ###
 
-Firedrake implementation of the deflated Barrier method for 3D topology optimization problems (fir-3d-ab or fir3dab)
+Firedrake implementation of the deflated barrier method for 3D topology optimization problems (fir-3d-ab or fir3dab)
 
 This deflated-barrier library implements the deflated barrier method of Papadopoulos, Farrell and Surowiec in Firedrake. The original implementation based on FEniCS can be found at https://bitbucket.org/papadopoulos/deflatedbarrier/.   
 
