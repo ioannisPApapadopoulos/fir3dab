@@ -186,7 +186,7 @@ class BorrvallProblem(PrimalInteriorPoint):
 
 
     def number_solutions(self, mu, params):
-        if float(mu) == 105:
+        if float(mu) > 95:
             return 1
         else:
             return 2
@@ -364,4 +364,4 @@ if __name__ == "__main__":
     problem=BorrvallProblem()
     params = [1.0/3, 2.5e4, 0.1] #(gamma, alphabar, q)
     saving_folder = "output/BDM-N-%s-nref-%s-"%(N,base_ref)
-    solutions = deflatedbarrier(problem, params, mu_start=105, mu_end = 1e-5, max_halfstep = 1, saving_folder = saving_folder)
+    solutions = deflatedbarrier(problem, params, mu_start=100, mu_end = 1e-5, max_halfstep = 1, saving_folder = saving_folder)

@@ -1,5 +1,5 @@
 diff --git a/firedrake/matrix_free/operators.py b/firedrake/matrix_free/operators.py
-index 849f72fc..8c283b7b 100644
+index 849f72fc..9e23182a 100644
 --- a/firedrake/matrix_free/operators.py
 +++ b/firedrake/matrix_free/operators.py
 @@ -57,6 +57,112 @@ def find_sub_block(iset, ises):
@@ -152,7 +152,7 @@ index 849f72fc..8c283b7b 100644
 +        By nature of how bcs are implemented, DirichletBC is equivalent to
 +        zeroing the rows and columns and adding a 1 to the diagonal
 +        """
-+        print("Inside zeroRowsColumns")
++        #print("Inside zeroRowsColumns")
 +        if not numpy.allclose(diag, 1.0):
 +            # DirichletBC adds a 1 onto the diagonal, this is part of the implementation and is not easy to change
 +            raise NotImplementedError("We do not know how to implement matrix-free zeroRowsColumns with diag not equal to 1")

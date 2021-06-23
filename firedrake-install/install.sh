@@ -40,11 +40,7 @@ else
         cd $FIREDRAKE_DIR/src
         git clone https://github.com/firedrakeproject/petsc.git || true
         cd $FIREDRAKE_DIR/src/petsc
-        #git clean -ffdx .
-        #./configure     --CC_LINKER_FLAGS=[-L${MKL_DIR}/lib/intel64,-lmkl_intel_lp64,-lmkl_sequential,-lmkl_core,-lpthread,-lm,-ldl] \
-        #                --with-blas-lapack-dir=$MKL_DIR \
-        #                --with-mkl_pardiso-dir=$MKL_DIR \
-                        #--with-mpi-dir=/usr/lib/x86_64-linux-gnu/openmpi \
+        git checkout -b old-state e85aaad7c1287e684d6072a4b7567aca31c0daee || true
         ./configure     --with-blas-lib=-lblas \
                         --with-lapack-lib=-llapack \
                         --CFLAGS=$CFLAGS \
@@ -123,7 +119,7 @@ else
     sed -i 's@quit("Can@#quit("Can@' firedrake-install
     sed -i 's@os.mkdir("src")@#os.mkdir("src")@' firedrake-install
     rm -f $VENVNAME/bin/{mpicc,mpicxx,mpif90,mpiexec}
-    python3 firedrake-install --honour-petsc-dir --slepc --venv-name $VENVNAME --mpicc mpicc.mpich --mpicxx mpicxx.mpich --mpif90 mpif90.mpich --mpiexec mpiexec.mpich
+    python3 firedrake-install --honour-petsc-dir --slepc --venv-name $VENVNAME --mpicc mpicc.mpich --mpicxx mpicxx.mpich --mpif90 mpif90.mpich --mpiexec mpiexec.mpich --doi 10.5281/zenodo.4449535
 
     source $FIREDRAKE_DIR/bin/activate
     pip install ipdb
