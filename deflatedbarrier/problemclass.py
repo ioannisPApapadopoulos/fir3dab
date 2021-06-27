@@ -92,11 +92,11 @@ class PrimalInteriorPoint(object):
     def context(self):
         return None
 
-    def solver(self, u, lb, ub, mu, nref, params, task):
+    def solver(self, u, lb, ub, mu, nref, params, task, branch):
         V = u.function_space()
         F = self.residual(u, TestFunction(V), lb, ub, mu, params)
         bcs = self.boundary_conditions(V, params)
-        sp = self.solver_parameters(mu, 0, task, params)
+        sp = self.solver_parameters(mu, branch, task, params)
         nsp = self.nullspace(V, params)
 
         nvp = NonlinearVariationalProblem(F, u, bcs=bcs)

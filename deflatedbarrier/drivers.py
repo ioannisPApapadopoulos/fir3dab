@@ -3,6 +3,7 @@ from firedrake import *
 from .mlogging import *
 from .deflation import defsolve
 from .misc import create_output_folder, inertia_switch, report_profile, MorYos
+from .mg import create_dm
 from copy import deepcopy
 import os
 import resource
@@ -73,9 +74,6 @@ def deflatedbarrier(problem, params=None, comm=COMM_WORLD, mu_start=1000,
         # lb.assign(float(lb)-1e-9*max(1,abs(assemble(lb*dx(mesh)))))
         # ub.assign(float(ub)+1e-9*max(1,abs(assemble(ub*dx(mesh)))))
 
-        # FIXME why does this have to be within the while loop?
-        nvs_cont = problem.solver(u, lb, ub, mu, nref, params, "ContinuationTask")
-        nvs_defl = problem.solver(u, lb, ub, mu, nref, params, "DeflationTask")
         solutions = []
 
         # increment iteration index
@@ -97,7 +95,7 @@ def deflatedbarrier(problem, params=None, comm=COMM_WORLD, mu_start=1000,
         while branch_iter < len(branches):
              outputarg = PredictionCorrectionDeflation(iter_subproblem, problem, FcnSpace, mesh,
                                                       u, v, w, lb, ub, params, bcs, dm, deflation,
-                                                      nvs_cont, nvs_defl, comm,
+                                                      comm,
                                                       branches, branch_iter, solutionpath_string,
                                                       branch_deflate_start, branch_deflate,
                                                       hint_guess, hint, guesses,
@@ -166,6 +164,7 @@ def FEMsetup(comm, problem, mu_start):
     mu = Constant(mu_start)
     mesh = problem.mesh(comm)
     FcnSpace = problem.function_space(mesh)
+    # dm = create_dm(FcnSpace, problem)
     dm = None
     return (mu, mesh, FcnSpace, dm)
 
@@ -231,7 +230,7 @@ def initialise_branches(found_solutions, Max_solutions, max_solutions):
 
 def PredictionCorrectionDeflation(iter_subproblem, problem, FcnSpace, mesh,
                                          u, v, w, lb, ub, params, bcs, dm, deflation,
-                                         nvs_cont, nvs_defl, comm,
+                                         comm,
                                          branches, branch_iter, solutionpath_string,
                                          branch_deflate_start, branch_deflate,
                                          hint_guess, hint, guesses,
@@ -287,15 +286,12 @@ def PredictionCorrectionDeflation(iter_subproblem, problem, FcnSpace, mesh,
             # elif task == "InfeasibleRhoTask":
             #     u.assign(oldguesses[branch])
 
-    # solver parameters that are passed to the solver
-    sp = problem.solver_parameters(mu, branch, task, params)
-
     # Solve!!!
     if task == "ContinuationTask":
         info_blue("Task: %s, Branch: %s, mu: %s" %(task, branch, float(mu)))
         #FIXME For reason it needs to be reset for each solve when switching branches
         # without this with the same initial guess, the initial residual at iteration 0 would be incorrect
-        nvs_cont = problem.solver(u, lb, ub, mu, 0, params, "ContinuationTask")
+        nvs_cont = problem.solver(u, lb, ub, mu, 0, params, "ContinuationTask", branch)
         runenv.begin()
         (success, snes_its, ksp_its) = defsolve(nvs_cont, deflateop = deflation, vi=vi)
         runenv.end()
@@ -303,7 +299,7 @@ def PredictionCorrectionDeflation(iter_subproblem, problem, FcnSpace, mesh,
         info_blue("Task: %s, Branch: %s, Initial guess: branch %s, mu: %s" %(task, branch, branch_deflate, float(mu)))
         #FIXME For reason it needs to be reset for each solve when switching branches
         # without this with the same initial guess, the initial residual at iteration 0 would be incorrect
-        nvs_defl = problem.solver(u, lb, ub, mu, 0, params, "DeflationTask")
+        nvs_defl = problem.solver(u, lb, ub, mu, 0, params, "DeflationTask", branch)
         runenv.begin()
         (success, snes_its, ksp_its) = defsolve(nvs_defl, deflateop = deflation, vi=vi)
         runenv.end()
