@@ -67,6 +67,7 @@ class DABFineGridPC(PCBase):
         params = [float(x) for x in params]
 
         gamma_al = float(PETSc.Options().getString(options_prefix + "gamma_al"))
+        sigma = float(PETSc.Options().getString(options_prefix + "sigma"))
 
         mu = appctx["mu"]
         self.statec = appctx["state"]
@@ -125,7 +126,7 @@ class DABFineGridPC(PCBase):
         g = expr
         Re = 1
 
-        sigma = Constant(10) * max(Z.sub(1).ufl_element().degree()**2, 1)
+        sigma = Constant(sigma) * max(Z.sub(1).ufl_element().degree()**2, 1)
         n = FacetNormal(self.zc.ufl_domain())
         h = CellDiameter(self.zc.ufl_domain()) # CellVolume(mesh)/FacetArea(mesh)
 
@@ -165,7 +166,7 @@ class DABFineGridPC(PCBase):
             if type(bc) is firedrake.matrix_free.operators.ZeroRowsColumnsBC:
                 active_bcs.append(bc)
 
-        # If there any any active-set bcs, then time to do some work.
+        # If there are any active-set bcs, then time to do some work.
         if len(active_bcs) > 0:
             active_nodes = active_bcs[0].nodes
             bc_rho = DirichletBC(Z.sub(0), Constant(0), "on_boundary")
@@ -266,8 +267,7 @@ class DABFineGridPC(PCBase):
         # No need to recreate the form, J should be using self.zc which has been
         # updated so can just reassemble with new active-row bcs
         J = self.J
-        ises = Z.dof_dset.field_ises
-        self.ises = ises
+        ises = self.ises
 
         fcp = self.fcp
         mat_type = self.mat_type
@@ -337,6 +337,7 @@ class DABCoarseGridPC(PCBase):
         params = [float(x) for x in params]
 
         gamma_al = float(PETSc.Options().getString(options_prefix + "gamma_al"))
+        sigma = float(PETSc.Options().getString(options_prefix + "sigma"))
 
         mu = appctx["mu"]
         self.statec = appctx["state"]
@@ -378,7 +379,7 @@ class DABCoarseGridPC(PCBase):
         g = expr
         Re = 1
 
-        sigma = Constant(10) * max(Z.sub(1).ufl_element().degree()**2, 1)
+        sigma = Constant(sigma) * max(Z.sub(1).ufl_element().degree()**2, 1)
         n = FacetNormal(self.zc.ufl_domain())
         h = CellDiameter(self.zc.ufl_domain()) # CellVolume(mesh)/FacetArea(mesh)
 
@@ -505,8 +506,7 @@ class DABCoarseGridPC(PCBase):
         # No need to recreate the form, J should be using self.zc which has been
         # updated so can just reassemble with new active-row bcs
         J = self.J
-        ises = self.Z.dof_dset.field_ises
-        self.ises = ises
+        ises = self.ises
 
         # If just updating, then the fine-grid active set has not changed, so no need
         # to recompute the coarse-grid active-set. Just keep the same from the previous
