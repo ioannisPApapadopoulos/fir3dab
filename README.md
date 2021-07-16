@@ -17,7 +17,7 @@ At this time, this library depends on changes to Firedrake and Firedrake's branc
 
 In order to install this library and the version of Firedrake required for this library, use the following commands:
 
-	git clone https://papadopoulos@bitbucket.org/papadopoulos/fir3dab.git
+	git clone https://github.com/ioannisPApapadopoulos/fir3dab.git
     mkdir firedrake
     cp fir3dab/firedrake-install/install.sh firedrake/
     cd firedrake
