@@ -19,7 +19,7 @@ This package also requires the alfi package for the correct prolongation and inj
 
 In order to install this library and the version of Firedrake required for this library, use the following commands:
 
-	git clone https://github.com/ioannisPApapadopoulos/fir3dab.git
+    git clone https://github.com/ioannisPApapadopoulos/fir3dab.git
     mkdir firedrake
     cp fir3dab/firedrake-install/install.sh firedrake/
     cd firedrake
@@ -40,15 +40,15 @@ A pip install of the fir3dab library:
 
     cd fir3dab/
     pip3 install .
-		cd ../
+    cd ../
 
 Finally, an installation of the alfi library and a switch to the correct branch:
 
-		git clone https://github.com/florianwechsung/alfi.git
-		cd alfi/
-		git checkout fw/hdiv
-		pip3 install .
-		cd ../
+    git clone https://github.com/florianwechsung/alfi.git
+    cd alfi/
+    git checkout fw/hdiv
+    pip3 install .
+    cd ../
 
 
 ### Examples ###
@@ -57,7 +57,22 @@ Checkout out examples/double-pipe-tables. To generate the convergence plots and 
 
 
     make double-pipe-tables
+    
+In examples/3d-5-holes.py we compute and grid-sequence 11 solutions to a 3D quadruple pipe problem with 5 cuboid holes in the domain. This examples utilizes preconditioning techniques including the robust MG cycle that with star patch relaxation and a representation of the active set on coarser levels. The command:
 
+    make 3d-5-holes-coarse
+
+finds the solution on a (coarse) mesh. The command
+
+    make 3d-5-holes-prolong-solutions
+
+then prolongs the solutions to a uniform refinement of the coarse mesh. The command
+
+    make 3d-5-holes-fine	
+    
+then grid-sequences the solutions utilizing the robust MG cycle. 
+
+s
 ### Contributors ###
 
 Ioannis P. A. Papadopoulos (ioannis.papadopoulos@maths.ox.ac.uk)
