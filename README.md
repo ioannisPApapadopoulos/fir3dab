@@ -72,7 +72,6 @@ then prolongs the solutions to a uniform refinement of the coarse mesh. The comm
     
 then grid-sequences the solutions utilizing the robust MG cycle. 
 
-s
 ### Contributors ###
 
 Ioannis P. A. Papadopoulos (ioannis.papadopoulos@maths.ox.ac.uk)
