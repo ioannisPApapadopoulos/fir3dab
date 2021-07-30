@@ -11,10 +11,10 @@ import glob
 
 
 version = re.findall('__version__ = "(.*)"',
-                     open('deflatedbarrier/__init__.py', 'r').read())[0]
+                     open('fir3dab/__init__.py', 'r').read())[0]
 
 packages = [
-    "deflatedbarrier",
+    "fir3dab",
     ]
 
 CLASSIFIERS = """
@@ -37,17 +37,17 @@ demofiles += glob.glob(os.path.join("examples", "*", "*", "*", "*.xml*"))
 # Don't bother user with test files
 [demofiles.remove(f) for f in demofiles if "test_" in f]
 
-setup(name="deflatedbarrier",
+setup(name="fir3dab",
       version=version,
       author="Ioannis Papadopoulos",
       author_email="papadopoulos@maths.ox.ac.uk",
-      url="http://bitbucket.com/papadopoulos/deflated-barrier",
+      url="https://github.com/ioannisPApapadopoulos/fir3dab",
       description="Deflated Barrier Method",
       long_description="--",
       classifiers=classifiers,
       license="GNU LGPL v3 or later",
       packages=packages,
-      package_dir={"deflatedbarrier": "deflatedbarrier"},
-      data_files=[(os.path.join("share", "deflatedbarrier", os.path.dirname(f)), [f])
+      package_dir={"fir3dab": "fir3dab"},
+      data_files=[(os.path.join("share", "fir3dab", os.path.dirname(f)), [f])
                   for f in demofiles],
     )

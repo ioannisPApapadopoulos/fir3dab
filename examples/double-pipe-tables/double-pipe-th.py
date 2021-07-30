@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from firedrake import *
-from deflatedbarrier import *
+from fir3dab import *
 
 
 """
@@ -83,7 +83,7 @@ class BorrvallProblem(PrimalInteriorPoint):
     def lagrangian(self, z, params):
         (rho, u, p, lmbda) = split(z)
         (gamma, alphabar, q) = params
-        
+
         # Barrier functional
         L = (
             + 0.5 * inner(grad(u), grad(u))*dx

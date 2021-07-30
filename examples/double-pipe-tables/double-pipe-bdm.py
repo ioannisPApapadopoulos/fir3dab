@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from firedrake import *
-from deflatedbarrier import *
+from fir3dab import *
 
 """
 A deflated barrier method implementation applied to the double-pipe problem

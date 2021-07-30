@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from firedrake import *
-from deflatedbarrier import *
+from fir3dab import *
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rc

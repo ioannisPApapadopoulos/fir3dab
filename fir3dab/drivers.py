@@ -3,7 +3,6 @@ from firedrake import *
 from .mlogging import *
 from .deflation import defsolve
 from .misc import create_output_folder, inertia_switch, report_profile, MorYos
-from .mg import create_dm
 from copy import deepcopy
 import os
 import resource
