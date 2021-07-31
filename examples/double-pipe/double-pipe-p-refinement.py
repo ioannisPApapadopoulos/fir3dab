@@ -13,7 +13,7 @@ must first run double-pipe-aL2.py with N=50, nref=1 to first compute the
 first-order BDM solution. Then, these solutions need to be interpolated via the
 scripts in interpolation-scripts/
 
-We use the preconditioning for the linear systems to reduce the solve to
+We use preconditioning for the linear systems to reduce the solve to
 
 1. Solve the diagonal material distribution block
 2. Solve the block-diagonal pressure mass matrix

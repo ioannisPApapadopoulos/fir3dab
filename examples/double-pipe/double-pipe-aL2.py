@@ -8,7 +8,7 @@ from fir3dab import *
 This script implements the double-pipe problem with a Brezzi-Douglas-Marini
 discretization for the velocity-pressure pair.
 
-We use the preconditioning for the linear systems to reduce the solve to
+We use preconditioning for the linear systems to reduce the solve to
 
 1. Solve the diagonal material distribution block
 2. Solve the block-diagonal pressure mass matrix
