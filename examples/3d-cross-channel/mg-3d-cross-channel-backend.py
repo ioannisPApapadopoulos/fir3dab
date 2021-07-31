@@ -13,7 +13,7 @@ As before the linear systems are block preconditioned and reduced to the followi
 2. Solve the block-diagonal pressure mass matrix
 3. Solve the augmented momentum block
 
-1. and 2. are inverted with MUMPS LU but 3. is now approximated my GMRES preconditioned
+1. and 2. are inverted with MUMPS LU but 3. is now approximated by GMRES preconditioned
 with a geometric MG cycle with star patch relaxation and a representation of the
 active set on the coarse level.
 """

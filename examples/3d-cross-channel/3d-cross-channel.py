@@ -147,7 +147,7 @@ class BorrvallProblem(PrimalInteriorPoint):
         mesh = Z.mesh()
         g = self.expr
 
-        sigma = Constant(1e3) * max(Z.sub(1).ufl_element().degree()**2, 1)
+        sigma = Constant(10) * max(Z.sub(1).ufl_element().degree()**2, 1)
         n = FacetNormal(z.ufl_domain())
         h = CellDiameter(z.ufl_domain())
 

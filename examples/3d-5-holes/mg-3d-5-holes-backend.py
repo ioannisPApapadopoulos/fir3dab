@@ -13,7 +13,7 @@ As before the linear systems are block preconditioned and reduced to the followi
 2. Solve the block-diagonal pressure mass matrix
 3. Solve the augmented momentum block
 
-1. and 2. are inverted with MUMPS LU but 3. is now approximated my GMRES preconditioned
+1. and 2. are inverted with MUMPS LU but 3. is now approximated by GMRES preconditioned
 with a geometric MG cycle with star patch relaxation and a representation of the
 active set on the coarse level.
 """
@@ -239,7 +239,7 @@ class BorrvallProblem(PrimalInteriorPoint):
         else:
             snes_atol = 1e-6
         args = {
-                "snes_max_it": max_it, 
+                "snes_max_it": max_it,
                 "snes_atol": snes_atol,
                 "snes_stol": 1e-20,
                 "snes_rtol": 1e-20,

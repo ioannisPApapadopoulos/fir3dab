@@ -1,5 +1,5 @@
 
-double-pipe-tables:
+double-pipe-smoothed-bcs-tables:
 	cd examples/double-pipe-smoothed-bcs-tables && python3 double-pipe-bdm.py
 	cd examples/double-pipe-smoothed-bcs-tables && python3 double-pipe-th.py
 	cd examples/double-pipe-smoothed-bcs-tables && python3 table-double-pipe.py
