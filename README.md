@@ -56,7 +56,7 @@ Finally, an installation of the alfi library and a switch to the correct branch:
 Checkout out examples/double-pipe-tables. To generate the convergence plots and tables found in "Numerical Analysis of a discontinuous Galerkin method for the Borrvall-Petersson topology optimization problem" - I.P.A. Papadopoulos, then run the following command in the parent directory of fir3dab:
 
 
-    make double-pipe-tables
+    make double-pipe-smoothed-bcs-tables
 
 In examples/3d-5-holes.py we compute and grid-sequence 11 solutions to a 3D quadruple pipe problem with 5 cuboid holes in the domain. This examples utilizes preconditioning techniques including the robust MG cycle that with star patch relaxation and a representation of the active set on coarser levels. The command:
 
@@ -70,7 +70,7 @@ then prolongs the solutions to a uniform refinement of the coarse mesh. The comm
 
     make 3d-5-holes-fine
 
-then grid-sequences the solutions utilizing the robust MG cycle using 32 cores. The same commands but replaces "5-holes" with "cross-channel" does the same with the 3D cross-channel example. 
+then grid-sequences the solutions utilizing the robust MG cycle using 32 cores. The same commands but replacing "5-holes" with "cross-channel" does the same with the 3D cross-channel example.
 
 ### Contributors ###
 
