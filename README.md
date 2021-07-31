@@ -6,7 +6,7 @@ Firedrake implementation of the deflated barrier method for 3D topology optimiza
 
 This deflated-barrier library implements the deflated barrier method of Papadopoulos, Farrell and Surowiec in Firedrake. The original implementation based on FEniCS can be found at https://bitbucket.org/papadopoulos/deflatedbarrier/.   
 
-The objective is to compute multiple minima of topology optimization problems which are non-convex, PDE & box-constrained optimization problems. This particular implementation focuses on developing preconditioners for the deflated barrier method linear systems that arise.
+The objective is to compute multiple minima of topology optimization problems which are nonconvex, infinite-dimensional, PDE & box-constrained optimization problems. This particular implementation focuses on developing preconditioners for the linear systems that arise during the application of the deflated barrier method.
 
 ### Dependencies and installation ###
 
@@ -57,20 +57,20 @@ Checkout out examples/double-pipe-tables. To generate the convergence plots and 
 
 
     make double-pipe-tables
-    
+
 In examples/3d-5-holes.py we compute and grid-sequence 11 solutions to a 3D quadruple pipe problem with 5 cuboid holes in the domain. This examples utilizes preconditioning techniques including the robust MG cycle that with star patch relaxation and a representation of the active set on coarser levels. The command:
 
     make 3d-5-holes-coarse
 
-finds the solution on a (coarse) mesh. The command
+finds the solution on a (coarse) mesh using 16 cores. The command
 
     make 3d-5-holes-prolong-solutions
 
 then prolongs the solutions to a uniform refinement of the coarse mesh. The command
 
-    make 3d-5-holes-fine	
-    
-then grid-sequences the solutions utilizing the robust MG cycle. 
+    make 3d-5-holes-fine
+
+then grid-sequences the solutions utilizing the robust MG cycle using 32 cores. The same commands but replaces "5-holes" with "cross-channel" does the same with the 3D cross-channel example. 
 
 ### Contributors ###
 

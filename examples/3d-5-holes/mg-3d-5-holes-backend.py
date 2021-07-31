@@ -239,7 +239,7 @@ class BorrvallProblem(PrimalInteriorPoint):
         else:
             snes_atol = 1e-6
         args = {
-                "snes_max_it": max_it, #
+                "snes_max_it": max_it, 
                 "snes_atol": snes_atol,
                 "snes_stol": 1e-20,
                 "snes_rtol": 1e-20,
@@ -350,7 +350,7 @@ class BorrvallProblem(PrimalInteriorPoint):
                                 # augmented momentum block on the finer levels
                                 # including the representation of the active set.
                                 # It can also be composed with exotic solver, e.g.
-                                # asm patch solver.
+                                # asm patch solvers.
                                 "mg_levels": {
                                     "ksp_type": "gmres",
                                     "ksp_norm_type": "unpreconditioned",
