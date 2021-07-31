@@ -24,3 +24,8 @@ double-pipe-smoothed-bcs-tables:
 
 3d-cross-channel-fine:
 	cd examples/3d-cross-channel && mpiexec -n 32 python3 mg-3d-cross-channel.py
+
+double-pipe-p-refinement-interpolate-solutions:
+	cd examples/double-pipe/interpolation-scripts && python3 make_vtu.py
+	cd examples/double-pipe/interpolation-scripts && mpiexec -n 4 python3 save_h5-2grid.py
+	cd examples/double-pipe/interpolation-scripts && mpiexec -n 11 python3 save_h5-3grid.py
