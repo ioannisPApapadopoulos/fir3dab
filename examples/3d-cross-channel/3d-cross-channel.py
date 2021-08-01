@@ -3,14 +3,14 @@ from firedrake import *
 from fir3dab import *
 
 """
-This script implements discovery of solutions of the 3D cross-channel problem on a
-"coarse" mesh. We use the preconditioning for the linear systems reduced the solve to
+This script implements the discovery of solutions of the 3D cross-channel problem on a
+"coarse" mesh. We use preconditioning for the linear systems to reduce the solve to
 
 1. Solve the diagonal material distribution block
 2. Solve the block-diagonal pressure mass matrix
 3. Solve the augmented momentum block
 
-All three are inverted with MUMPS LU in this script (feasible since we are on
+aL1) All three are inverted with MUMPS LU in this script (feasible since we are on
 a coarse mesh).
 
 In total we find 3 solutions.

@@ -3,11 +3,11 @@ from firedrake import *
 from fir3dab import info_green
 
 """
-This script takes the already saved solutions in a .xml.gz file, interpolated them to
+This script takes the already saved solutions in a .xml.gz file, interpolates them to
 DG spaces and saves them as pvd files.
 
 We do this as it allows us to grid-sequence the solutions on a finer mesh using a number of cores,
-even if the original coarse-mesh solutions were saved on a different number of cores.
+even if the original coarse-mesh solutions were saved using a different number of cores.
 """
 
 comm = COMM_WORLD

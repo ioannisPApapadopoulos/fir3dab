@@ -8,9 +8,9 @@ discretization for the velocity-pressure pair.
 
 We use preconditioning for the linear systems to reduce the solve to
 
-1. Solve the diagonal material distribution block
-2. Solve the block-diagonal pressure mass matrix
-3. Solve the augmented momentum block
+1. Solve the diagonal material distribution block;
+2. Solve the block-diagonal pressure mass matrix;
+3. Solve the augmented momentum block.
 
 In this script we use the strategy:
 

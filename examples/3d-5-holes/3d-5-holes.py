@@ -3,17 +3,17 @@ from firedrake import *
 from fir3dab import *
 
 """
-This script implements discovery of solutions of the 3D five-holes problem on a
-"coarse" mesh. We use the preconditioning for the linear systems reduced the solve to
+This script implements the discovery of solutions of the 3D five-holes problem on a
+"coarse" mesh. We use preconditioning for the linear systems that reduce the solve to
 
-1. Solve the diagonal material distribution block
-2. Solve the block-diagonal pressure mass matrix
-3. Solve the augmented momentum block
+1. Solve the diagonal material distribution block;
+2. Solve the block-diagonal pressure mass matrix;
+3. Solve the augmented momentum block.
 
-All three are inverted with MUMPS LU in this script (feasible since we are on
+aL1) All three are inverted with MUMPS LU in this script (feasible since we are on
 a coarse mesh).
 
-In total we find 14 solutions, although only 11 of these are grid-sequenced.
+In total we find 14 solutions.
 """
 gamma_al = 1e5 # augmented Lagrangian parameter
 width = 1.5    # length of box

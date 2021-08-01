@@ -5,15 +5,15 @@ from alfi import *
 from alfi.transfer import *
 
 """
-This script grid-sequences the solutions found on the coarse-mesh by 3d-5-holes.
+This script grid-sequences the solutions found on the coarse-mesh by 3d-5-holes.py.
 
 As before the linear systems are block preconditioned and reduced to the following:
 
-1. Solve the diagonal material distribution block
-2. Solve the block-diagonal pressure mass matrix
-3. Solve the augmented momentum block
+1. Solve the diagonal material distribution block;
+2. Solve the block-diagonal pressure mass matrix;
+3. Solve the augmented momentum block.
 
-1. and 2. are inverted with MUMPS LU but 3. is now approximated by GMRES preconditioned
+aL2) 1. and 2. are inverted with MUMPS LU but 3. is now approximated by GMRES preconditioned
 with a geometric MG cycle with star patch relaxation and a representation of the
 active set on the coarse level.
 """

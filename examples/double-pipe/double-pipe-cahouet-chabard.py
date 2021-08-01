@@ -17,8 +17,8 @@ The Cahouet-Chabard strategy reduces the solve to:
 2. Solve the unaugmented momentum block
 3. Approximate the inverse of the innermost Schur complement requiring:
     a) CG preconditioned with:
-    b) Solve the block-diagonal pressure mass matrix
-    c) Solve a pressure stiffness-like block
+        b) Solve the block-diagonal pressure mass matrix;
+        c) Solve a pressure stiffness-like block.
 
 In this strategy, all the sparse blocks are inverted with MUMPS LU.
 

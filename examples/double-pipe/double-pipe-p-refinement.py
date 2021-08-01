@@ -11,13 +11,18 @@ a Brezzi-Douglas-Marini discretization for the velocity-pressure pair.
 This script utilizes a first-order solution as an initial guess. So the user
 must first run double-pipe-aL2.py with N=50, nref=1 to first compute the
 first-order BDM solution. Then, these solutions need to be interpolated via the
-scripts in interpolation-scripts/
+scripts in interpolation-scripts/. The interpolation can be done automatically
+by running
+
+    make double-pipe-p-refinement-interpolate-solutions
+
+in the parent directory.
 
 We use preconditioning for the linear systems to reduce the solve to
 
-1. Solve the diagonal material distribution block
-2. Solve the block-diagonal pressure mass matrix
-3. Solve the augmented momentum block
+1. Solve the diagonal material distribution block;
+2. Solve the block-diagonal pressure mass matrix;
+3. Solve the augmented momentum block.
 
 In this script we use the strategy:
 
@@ -25,7 +30,7 @@ aL2) 1. and 2. are inverted with MUMPS LU but 3. is approximated by GMRES precon
 with a (2- or 3-grid) geometric MG cycle with star patch relaxation and a representation of the
 active set on the coarse level.
 
-In total we find 2 (higher order) solutions.
+In total we find 2 (higher order approximated) solutions.
 """
 
 width = 1.5 # aspect ratio
