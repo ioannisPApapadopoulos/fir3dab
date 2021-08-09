@@ -69,6 +69,9 @@ class DABFineGridPC(PCBase):
         gamma_al = float(PETSc.Options().getString(options_prefix + "gamma_al"))
         sigma = float(PETSc.Options().getString(options_prefix + "sigma"))
 
+        coarser_level_active_set = PETSc.Options().getString(options_prefix + "coarser_level_active_set", "Hoppe")
+        ac_tol = float(PETSc.Options().getString(options_prefix + "coarser_level_bound_tols", 1e-10))
+
         mu = appctx["mu"]
         self.statec = appctx["state"]
         # This is passed inside the user-run script
@@ -178,37 +181,64 @@ class DABFineGridPC(PCBase):
                 # If not at finest level, we need to do some work...
                 # Run through list of active-set fine-grid nodes and return which row they are
                 # contained in inside the coarse_to_fine mapping. The row tells us which coarse
-                # cell those active-set fine cells are contained in.
+                # cell those active-set fine cells are contained in. This is the DEFAULT choice
+                # for defining coarser levels active sets and performs best.
+                if coarser_level_active_set == "Hoppe":
+                    # Function that keeps rows that appear for than 'occ' number of times.
+                    occurence_count = lambda nodes, occ: [x for x in set(nodes) if nodes.count(x) >= occ]
 
-                # Function that keeps rows that appear for than 'occ' number of times.
-                occurence_count = lambda nodes, occ: [x for x in set(nodes) if nodes.count(x) >= occ]
+                    # Keep coarse cells that contain 2 (if 2D) or 4 (if 3D) or more finer-grid active set cells.
+                    top_dim = Z.mesh().topological_dimension()
+                    if top_dim == 2:
+                        occ_list = [2]*(nref - msh_level)
+                    elif top_dim == 3:
+                        occ_list = [4]*(nref - msh_level)
+                    else:
+                        raise("The dimension %s is not supported in dabMGPC"%top_dim)
 
-                # Keep coarse cells that contain 2 (if 2D) or 4 (if 3D) or more finer-grid active set cells.
-                top_dim = Z.mesh().topological_dimension()
-                if top_dim == 2:
-                    occ_list = [2]*(nref - msh_level)
-                elif top_dim == 3:
-                    occ_list = [4]*(nref - msh_level)
+                    for i, occ in zip(reversed(range(nref)), occ_list):
+                        coarse_active_nodes = []
+                        # FIXME: The below for loop is very unhealthy. Looping over all active-set active_nodes
+                        # is very inefficient. Definitely can speed this up.
+                        for n in active_nodes:
+                            row = numpy.where(numpy.any(self.coarse_to_fine_mapping[i] == n, axis=1))
+                            row = row[0]
+                            if len(row)> 0:
+                                coarse_active_nodes.append(row[0])
+                        # Only keep coarse cells that contain occ or more finer-grid active set cells
+                        # as given in the occ_list.
+                        coarse_active_nodes = occurence_count(coarse_active_nodes, occ)
+                        active_nodes = coarse_active_nodes
+
+                    active_nodes = numpy.array(coarse_active_nodes)
+                    bc_rho.nodes = active_nodes
+
+                # This defines the coarser level active sets via the injected material distribution.
+                # This is here purely for comparison purposes and does not perform as well as the
+                # Hoppe-style definition above.
+                elif coarser_level_active_set == "definition":
+
+                    self.residual = Function(Z)
+                    self.dmrestrict = dm.getAppCtx()[0].transfer_manager.restrict
+                    residualf = assemble(dm_p.getAppCtx()[0].F)
+                    self.dmrestrict(residualf.split()[0], self.residual.split()[0])
+
+                    rho_ = self.zc.split()[0]
+                    F_rho = self.residual.split()[0]
+
+                    indices_rho = numpy.where(rho_.vector().get_local() >= 1.0-ac_tol)[0]
+                    indices_F = numpy.where(F_rho.vector().get_local() < 0)[0]
+                    indices = numpy.intersect1d(indices_rho, indices_F).tolist()
+
+                    indices_rho = numpy.where(rho_.vector().get_local() <= 0.0+ac_tol)[0]
+                    indices_F = numpy.where(F_rho.vector().get_local() > 0)[0]
+                    indices += numpy.intersect1d(indices_rho, indices_F).tolist()
+
+                    indices = numpy.array(indices)
+                    bc_rho.nodes = indices
+
                 else:
-                    raise("The dimension %s is not supported in dabMGPC"%top_dim)
-
-                for i, occ in zip(reversed(range(nref)), occ_list):
-                    coarse_active_nodes = []
-                    # FIXME: The below for loop is very unhealthy. Looping over all active-set active_nodes
-                    # is very inefficient. Definitely can speed this up.
-                    for n in active_nodes:
-                        row = numpy.where(numpy.any(self.coarse_to_fine_mapping[i] == n, axis=1))
-                        row = row[0]
-                        if len(row)> 0:
-                            coarse_active_nodes.append(row[0])
-                    # Only keep coarse cells that contain occ or more finer-grid active set cells
-                    # as given in the occ_list.
-                    coarse_active_nodes = occurence_count(coarse_active_nodes, occ)
-                    active_nodes = coarse_active_nodes
-
-                active_nodes = numpy.array(coarse_active_nodes)
-                bc_rho.nodes = active_nodes
-
+                    raise("Need a choice for defining the coarse-level active sets.")
         # If active-set non-empty, add to bcs list
         if len(active_bcs) > 0:
             bcs.extend(bc_rho)
@@ -339,6 +369,9 @@ class DABCoarseGridPC(PCBase):
         gamma_al = float(PETSc.Options().getString(options_prefix + "gamma_al"))
         sigma = float(PETSc.Options().getString(options_prefix + "sigma"))
 
+        coarser_level_active_set = PETSc.Options().getString(options_prefix + "coarser_level_active_set", "Hoppe")
+        ac_tol = float(PETSc.Options().getString(options_prefix + "coarser_level_bound_tols", 1e-10))
+
         mu = appctx["mu"]
         self.statec = appctx["state"]
         self.coarse_to_fine_mapping = appctx["c2f_mapping"]
@@ -447,22 +480,54 @@ class DABCoarseGridPC(PCBase):
         else:
             raise("The dimension %s is not supported in dabMGPC"%top_dim)
 
+        # Run through list of active-set fine-grid nodes and return which row they are
+        # contained in inside the coarse_to_fine mapping. The row tells us which coarse
+        # cell those active-set fine cells are contained in. This is the DEFAULT choice
+        # for defining coarser levels active sets and performs best.
         if len(active_bcs) > 0:
-            for i, occ in zip(reversed(range(nref)), occ_list):
-                coarse_active_nodes = []
-                # FIXME: inefficient loop
-                for n in active_nodes:
-                    row = numpy.where(numpy.any(self.coarse_to_fine_mapping[i] == n, axis=1))
-                    row = row[0]
-                    if len(row)> 0:
-                        coarse_active_nodes.append(row[0])
-                # Only keep coarse cells that contain occ or more finer-grid active set cells
-                # as given in the occ_list.
-                coarse_active_nodes = occurence_count(coarse_active_nodes, occ)
-                active_nodes = coarse_active_nodes
+            if coarser_level_active_set == "Hoppe":
+                for i, occ in zip(reversed(range(nref)), occ_list):
+                    coarse_active_nodes = []
+                    # FIXME: inefficient loop
+                    for n in active_nodes:
+                        row = numpy.where(numpy.any(self.coarse_to_fine_mapping[i] == n, axis=1))
+                        row = row[0]
+                        if len(row)> 0:
+                            coarse_active_nodes.append(row[0])
+                    # Only keep coarse cells that contain occ or more finer-grid active set cells
+                    # as given in the occ_list.
+                    coarse_active_nodes = occurence_count(coarse_active_nodes, occ)
+                    active_nodes = coarse_active_nodes
 
-            active_nodes = numpy.array(coarse_active_nodes, dtype="int32")
-            bc_rho.nodes = active_nodes
+                active_nodes = numpy.array(coarse_active_nodes, dtype="int32")
+                bc_rho.nodes = active_nodes
+
+            # This defines the coarser level active sets via the injected material distribution.
+            # This is here purely for comparison purposes and does not perform as well as the
+            # Hoppe-style definition above.
+            elif coarser_level_active_set == "definition":
+
+                self.residual = Function(Z)
+                self.dmrestrict = dm.getAppCtx()[0].transfer_manager.restrict
+                residualf = assemble(dm_p.getAppCtx()[0].F)
+                self.dmrestrict(residualf.split()[0], self.residual.split()[0])
+
+                rho_ = self.zc.split()[0]
+                F_rho = self.residual.split()[0]
+
+                indices_rho = numpy.where(rho_.vector().get_local() >= 1.0-ac_tol)[0]
+                indices_F = numpy.where(F_rho.vector().get_local() < 0)[0]
+                indices = numpy.intersect1d(indices_rho, indices_F).tolist()
+
+                indices_rho = numpy.where(rho_.vector().get_local() <= 0.0+ac_tol)[0]
+                indices_F = numpy.where(F_rho.vector().get_local() > 0)[0]
+                indices += numpy.intersect1d(indices_rho, indices_F).tolist()
+
+                indices = numpy.array(indices)
+                bc_rho.nodes = indices
+
+            else:
+                raise("Need a choice for defining the coarse-level active sets.")
 
         self.bc_rho = bc_rho
         # If active-set non-empty, add to bcs list
