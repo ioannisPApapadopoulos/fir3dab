@@ -29,3 +29,9 @@ double-pipe-p-refinement-interpolate-solutions:
 	cd examples/double-pipe/interpolation-scripts && python3 make_vtu.py
 	cd examples/double-pipe/interpolation-scripts && mpiexec -n 4 python3 save_h5-2grid.py
 	cd examples/double-pipe/interpolation-scripts && mpiexec -n 11 python3 save_h5-3grid.py
+
+double-pipe-tables:
+	cd examples/double-pipe-tables && python3 double-pipe-bdm.py
+	cd examples/double-pipe-tables && python3 double-pipe-th.py
+	cd examples/double-pipe-tables && python3 table-double-pipe.py
+	cd examples/double-pipe-tables && python3 convergence-plots.py
