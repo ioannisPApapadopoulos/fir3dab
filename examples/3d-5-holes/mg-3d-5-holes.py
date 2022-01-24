@@ -18,7 +18,7 @@ def gridsequence():
     gamma_al = 1e5
     dgtransfer = DGInjection()
 
-    for branch in range(14):
+    for branch in [0,1,2,3,7,11,13]:
 
         class FiveHoles(object):
 
@@ -39,6 +39,6 @@ def gridsequence():
         newproblem = FiveHoles()
         saving_folder = "mg-output/mg-branch-%s-"%(branch)
         params = [0.2, 2.5e4, 0.1] #(gamma, alphabar, q)
-        deflatedbarrier(newproblem, params, mu_start= 1e-6, mu_end = 1e-5, max_halfstep = 0, saving_folder = saving_folder)
+        deflatedbarrier(newproblem, params, mu_start= 1e-5, mu_end = 1e-4, max_halfstep = 0, saving_folder = saving_folder)
 
 gridsequence()

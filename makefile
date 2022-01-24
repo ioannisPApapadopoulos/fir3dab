@@ -15,6 +15,9 @@ double-pipe-smoothed-bcs-tables:
 3d-5-holes-fine:
 	cd examples/3d-5-holes && mpiexec -n 32 python3 mg-3d-5-holes.py
 
+3d-5-holes-3-grid:
+	cd examples/3d-5-holes && mpiexec -n 32 python3 mg-3d-5-holes-3grid.py
+
 3d-cross-channel-coarse:
 	cd examples/3d-cross-channel && mpiexec -n 16 python3 3d-cross-channel.py
 

@@ -5,7 +5,8 @@ from alfi import *
 from alfi.transfer import *
 
 """
-This script grid-sequences the solutions found on the coarse-mesh by 3d-5-holes.py.
+This script grid-sequences the grid-sequenced branch 0 of the 3D fives-holes problem
+a second time.
 
 As before the linear systems are block preconditioned and reduced to the following:
 
@@ -13,14 +14,15 @@ As before the linear systems are block preconditioned and reduced to the followi
 2. Solve the block-diagonal pressure mass matrix;
 3. Solve the augmented momentum block.
 
-aL2) 1. and 2. are inverted with MUMPS LU but 3. is now approximated by GMRES preconditioned
-with a geometric MG cycle with star patch relaxation and a representation of the
+aL2) 1. and 2. are inverted with MUMPS LU an 3. is approximated by GMRES preconditioned
+with a 3-grid geometric MG cycle with star patch relaxation and a representation of the
 active set on the coarse level.
 """
-width = 1.5
-nref = 1       # number of refinements of the base mesh
-gamma_al = 1e5 # augmented Lagrangian parameter
-branch = 0     # branch to gridsequence
+
+width = 1.5 
+nref = 2        # number of refinements of the base mesh
+gamma_al = 1e5  # augmented Lagrangian parameter
+branch = 0      # branch to gridsequence
 dgtransfer = DGInjection() # some transfer operators from alfi
 
 def InflowOutflow(mesh):
@@ -55,13 +57,12 @@ def InflowOutflow(mesh):
 
 
 class Mass(AuxiliaryOperatorPC):
-    # Class for pressure mass matrix approximation of the Schur complement
     def form(self, pc, test, trial):
         K = 1./gamma_al * inner(test,trial)*dx
         return (K, None)
 
 class BDMTransferManager(TransferManager):
-    # Transfer operators for robust MG cycle
+   # Transfer operators for robust MG cycle
    def __init__(self, *, native_transfer=None, use_averaging=True):
         self.native_transfers = {VectorElement("DG", tetrahedron, 1, dim=3): (dgtransfer.prolong, restrict, dgtransfer.inject),
                                  FiniteElement("DG", tetrahedron, 0): (prolong, restrict, inject),
@@ -87,12 +88,11 @@ class BorrvallProblem(PrimalInteriorPoint):
         # load mesh generated in Gmsh. Box domain (0,0,0)x(1.5,1,1) with 5
         # cuboid holes cut out at x=3/4.
         mesh = Mesh("mesh-5-holes.msh", comm=comm, distribution_parameters = distribution_parameters)
-        # generate 2-level mesh hierarchy
         self.mh = MeshHierarchy(mesh, nref, reorder=True, callbacks=(before,after))
-        mesh = self.mh[-1]
         # The coarse to fine element mappings are required in the MG cycle in order
         # to represent the active set on the coarser levels. We choose to save this
         # mapping here to self.
+        mesh = self.mh[-1]
         self.c2f_mapping = self.mh.coarse_to_fine_cells
         return mesh
 
@@ -116,7 +116,6 @@ class BorrvallProblem(PrimalInteriorPoint):
         self.function_space_hierarchy = []
         for i in range(nref+1):
             self.function_space_hierarchy.append(FunctionSpace(self.mh[i], MixedElement([Ce,Ve])))
-
         info_green("Number of degrees of freedom: ", Z.dim())
         # Take some data. First, BCs
         self.expr = InflowOutflow(mesh)
@@ -204,17 +203,23 @@ class BorrvallProblem(PrimalInteriorPoint):
 
     def initial_guesses(self, Z, params):
         """
-        Load saved initial guess.
+        Load already grid-sequenced branch 0 (e.g. as computed in mg-3d-5-holes.py)
+        and then prolong that solution to this even finer mesh. 
         """
         comm = Z.comm
-        z = []
-        for branches in range(14):
-            z.append(Function(Z))
-            h5 = HDF5File("initial-guess/%s.xml.gz"%branches, "r", comm=comm)
-            h5.read(z[branches], "/guess")
-            del h5
-        return [z[branch]]
+        
+        Zc  = FunctionSpace(self.mh[1], self.Ze) 
+        z0 = Function(Zc)
+        fol1 = "mg-output/mg-branch-%s-output/"%branch
+        fol2 = "mu-0.000000000000e+00-dofs-2014113-params-[0.2, 25000.0, 0.1]-solver-BensonMunson/"
+        h5 = HDF5File(fol1+fol2+"0.xml.gz", "r", comm=comm)
+        h5.read(z0, "/guess")
+        del h5
 
+        z = Function(Z)
+        prolong(z0,z)
+        return [z]
+    
     def number_solutions(self, mu, params):
         return 1
 
@@ -233,11 +238,11 @@ class BorrvallProblem(PrimalInteriorPoint):
         (gamma,alphabar, q) = params
         linesearch = "l2"
         max_it = 100
-        damping = 0.5
+        damping = 1.0
         if float(mu)!=0.0:
             snes_atol = 1e-4
         else:
-            snes_atol = 1e-6
+            snes_atol = 5e-6
         args = {
                 "snes_max_it": max_it,
                 "snes_atol": snes_atol,
@@ -293,7 +298,7 @@ class BorrvallProblem(PrimalInteriorPoint):
                         "pc_fieldsplit_1_fields": "1,2",
 
                         # Need this for the solver to pick up the correct transfer operator
-                        "mg_transfer_manager": __name__ + ".BDMTransferManager",
+                        "mg_transfer_manager": "__main__.BDMTransferManager",
 
                         # material distribution block is a dressed-up mass matrix and should
                         # not be difficult to invert, can use CG or CG preconditioned with ILU
@@ -329,8 +334,8 @@ class BorrvallProblem(PrimalInteriorPoint):
                                 "pc_mg_type": "full",
                                 # This is redundant (but we keep it around just in case), the
                                 # transfer operator is picked up higher up
-                                "mg_transfer_manager": __name__ + ".BDMTransferManager",
-
+                                "mg_transfer_manager": "__main__.BDMTransferManager",
+                                
                                 # DABCoarseGridPC is a class implemented in the
                                 # fir3dab library. It correctly assembles the
                                 # augmented momentum block on the coarsest level
@@ -387,7 +392,7 @@ class BorrvallProblem(PrimalInteriorPoint):
                             "fieldsplit_1_ksp_type": "preonly",
                             "fieldsplit_1_ksp_norm_type": "unpreconditioned",
                             "fieldsplit_1_pc_type": "python",
-                            "fieldsplit_1_pc_python_type": __name__ + ".Mass",
+                            "fieldsplit_1_pc_python_type": "__main__.Mass",
                             "fieldsplit_1_aux_pc_type": "lu",
                             "fieldsplit_1_aux_pc_factor_mat_solver_type": "mumps",
                             "fieldsplit_1_aux_mat_mumps_icntl_14": 500,
@@ -432,4 +437,5 @@ if __name__ == "__main__":
 
     problem=BorrvallProblem()
     params = [0.2, 2.5e4, 0.1] #(gamma, alphabar, q)
-    solutions = deflatedbarrier(problem, params, mu_start=1e-5, mu_end = 1e-4, max_halfstep = 0)
+    saving_folder = "mg-output/mg-branch-%s-nref-%s-"%(branch, nref)
+    solutions = deflatedbarrier(problem, params, mu_start=0., mu_end = 1e-4, max_halfstep = 0, saving_folder=saving_folder)
