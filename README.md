@@ -23,9 +23,9 @@ In order to install this library and the version of Firedrake required for this 
 
     git clone https://github.com/ioannisPApapadopoulos/fir3dab.git
     mkdir firedrake
-    cp fir3dab/firedrake-install/install.sh firedrake/
     cd firedrake
-    ./install.sh install
+    curl -O https://raw.githubusercontent.com/firedrakeproject/firedrake/master/scripts/firedrake-install
+    python3 firedrake-install --doi 10.5281/zenodo.4449535
     cd firedrake/src/firedrake
     git apply ../../../../fir3dab/firedrake-install/firedrake.diff
     cd ../petsc
@@ -35,7 +35,7 @@ In order to install this library and the version of Firedrake required for this 
 
 Then make sure to activate the Firedrake venv and run a firedrake-clean!
 
-    source firedrake/install.sh
+    source firedrake-v3/firedrake/bin/activate
     firedrake-clean
 
 A pip install of the fir3dab library:
