@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from firedrake import *
-from deflatedbarrier import *
+from fir3dab import *
 
 delta = 1.5 # aspect ratio
 N = 20 # mesh resolution
@@ -140,10 +140,7 @@ class BorrvallProblem(PrimalInteriorPoint):
 
 
     def number_solutions(self, mu, params):
-        if float(mu) > 82:
-            return 2
-        else:
-            return 2
+        return 2
 
     def update_mu(self, z, mu, iters, k, k_mu_old, params):
         if float(mu) > 20:
