@@ -76,7 +76,7 @@ then grid-sequences the solutions utilizing the robust MG cycle using 32 cores. 
 
 ### Contributors ###
 
-Ioannis P. A. Papadopoulos (ioannis.papadopoulos@maths.ox.ac.uk)
+Ioannis P. A. Papadopoulos (ioannis.papadopoulos13@imperial.ac.uk)
 
 Patrick E. Farrell (patrick.farrell@maths.ox.ac.uk)
 
