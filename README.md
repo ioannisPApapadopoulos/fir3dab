@@ -35,7 +35,7 @@ In order to install this library and the version of Firedrake required for this 
 
 Then make sure to activate the Firedrake venv and run a firedrake-clean!
 
-    source firedrake-v3/firedrake/bin/activate
+    source firedrake/firedrake/bin/activate
     firedrake-clean
 
 A pip install of the fir3dab library:
